@@ -1,3 +1,4 @@
+.DS_Store
 build/*
 data/*
-memo.txt
+src/listing_0065_haversine_formula.cpp

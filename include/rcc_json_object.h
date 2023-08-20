@@ -2,6 +2,7 @@
 #define RCC_JSON_OBJECT_H_
 
 #include "rcc_common.h"
+#include <stdio.h>
 
 // JSON members declaration
 enum json_type
@@ -76,9 +77,10 @@ void addJsonMemberNull(json_object* JsonObject, const char* Key);
 bool32_t deleteJsonMember(json_member* JsonMember, const char* Key);
 bool32_t deleteJsonMember(json_object& JsonObject, const char* Key);
 void destroyJsonMember(json_member* JsonMember);
-void printJsonMember(json_member Member);
+void printJsonMember(json_member JsonMember);
 void printJsonValue(json_value JsonValue);
-void printJsonObject(json_object Object);
+void printJsonObject(json_object JsonObject);
+void writeJsonObjectToFile(json_object JsonObject, const char* FileName);
 
 // local functions
 static inline void setJsonMemberValue(json_member* Member, const char* Key, const char* String);
@@ -88,8 +90,8 @@ static inline void setJsonMemberValue(json_member* Member, const char* Key, json
 static inline void setJsonMemberValue(json_member* Member, const char* Key, json_value* ArrayHead, size_t ArraySize);
 static inline void setJsonMemberValueNull(json_member* Member, const char* Key);
 static inline void setJsonMemberSibling(json_member* Member, json_member* Next);
-
-
+static void fprintJsonMember(FILE* File, json_member JsonMember);
+static void fprintJsonValue(FILE* File, json_value JsonValue);
 
 
 #endif

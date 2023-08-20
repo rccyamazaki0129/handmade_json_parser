@@ -601,6 +601,45 @@ void printJsonObject(json_object Object)
     }
 }
 
+/**
+ * @brief Writes the contents of a JSON object to a file.
+ * 
+ * This function attempts to write the provided JSON object to the specified file.
+ * If there are any issues with the JSON object or the file name provided, 
+ * appropriate error messages are logged, and the function returns without writing to the file.
+ *
+ * @param JsonObject The JSON object to be written to the file.
+ * @param FileName The path and name of the file to which the JSON object will be written.
+ */
+void writeJsonObjectToFile(json_object JsonObject, const char* FileName)
+{
+    if (JsonObject.First == nullptr) {
+        logOutput("JSON object is empty.");
+        return;
+    }
+
+    if (!JsonObject.IsValid) {
+        logOutput("JSON object is not valid.");
+        return;
+    }
+
+    if (FileName == nullptr) {
+        logOutput("File name is not specified.");
+        return;
+    }
+
+    // Create a File with specified name.
+    FILE* JsonFile = fopen(FileName, "w");
+    if (JsonFile == nullptr) {
+        logOutput("[ERROR]Failed to create a file.");
+        return;
+    }
+
+    fprintJsonMember(JsonFile, *(JsonObject.First));
+    fprintf(JsonFile, "\n");
+    fclose(JsonFile);
+}
+
 // local functions
 
 static inline void setJsonMemberValue(json_member* Member, const char* Key, const char* String)
@@ -658,4 +697,72 @@ static inline void setJsonMemberValueNull(json_member* Member, const char* Key)
 static inline void setJsonMemberSibling(json_member* Member, json_member* Next)
 {
     Member->Next = Next;
+}
+
+static void fprintJsonValue(FILE* File, json_value JsonValue)
+{
+    switch (JsonValue.Type) {
+        case JSON_TYPE_MEMBER: {
+            // Print JSON member by dereferencing its child pointer
+            json_member Child = *(JsonValue.Child);
+            fprintJsonMember(File, Child);
+            /* TODO: Handle proper indentation for nested structures */
+        } break;
+        case JSON_TYPE_ARRAY: {
+            fprintf(File, "[");
+            // Traverse through each value in the JSON array and print it
+            json_value* JsonArray = JsonValue.Array.Head;
+            for (int32_t Index = 0; Index < JsonValue.Array.Size; Index++) {
+                fprintJsonValue(File, *(JsonArray + Index));
+                // Add a comma separator for all but the last element
+                if (Index < JsonValue.Array.Size - 1) {
+                    fprintf(File, ", ");
+                }
+            }
+            fprintf(File, "]");
+        } break;
+        case JSON_TYPE_STRING: {
+            fprintf(File, "\"%s\"", JsonValue.String);
+        } break;
+        case JSON_TYPE_NUMBER: {
+            if (isFractionalPartZero(JsonValue.Number)) {
+                fprintf(File, "%d", (int32_t)JsonValue.Number);
+            }
+            else {
+                fprintf(File, "%.4lf", JsonValue.Number);
+            }
+        } break;
+        case JSON_TYPE_BOOLEAN: {
+            fprintf(File, "%s", JsonValue.Boolean ? "true" : "false");
+        } break;
+        case JSON_TYPE_NULL: {
+            fprintf(File, "null");
+        } break;
+        default: {
+            logOutput("[ERROR] Invalid json_type found.");
+        } break;
+    }
+}
+
+static void fprintJsonMember(FILE* File, json_member Member)
+{
+    json_member* TargetMember = &Member;
+    if (TargetMember == nullptr) {
+        logOutput("This JSON member is inaccessible.");
+        return;
+    }
+
+    fprintf(File, "{");
+    while (true) {
+        fprintf(File, "\"%s\" : ", TargetMember->Key);
+        fprintJsonValue(File, TargetMember->Value);
+        if (TargetMember->Next) {
+            fprintf(File, ", ");
+            TargetMember = TargetMember->Next;
+        }
+        else {
+            break;
+        }
+    }
+    fprintf(File, "}");
 }
